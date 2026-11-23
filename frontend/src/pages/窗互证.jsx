@@ -4,22 +4,30 @@ import { 取, 递 } from "../api.js";
 export default function 窗互证页() {
   const [列, 设列] = useState([]);
   const [果, 设果] = useState(null);
+  const [错, 设错] = useState("");
   const 刷 = () => 取("/贯验").then(设列);
   useEffect(() => { 刷(); }, []);
   const 跑 = async () => {
-    设果(await 递("/贯验"));
-    刷();
+    设错("");
+    try {
+      设果(await 递("/贯验"));
+      刷();
+    } catch (e) {
+      设错(String(e.message || e));
+    }
   };
   return (
     <div>
       <h1 className="题">窗互证</h1>
       <p className="述">
-        核对：已关闭窗的点赞/送礼/笔数 = 落入该窗的事件合计；若有撤回，末次撤回的新值须与窗表一致。不是枢纽-链接-卫星贯验。
+        核对：已关闭窗的点赞/送礼/笔数 = 落入该窗的事件合计；<strong>主指标按该窗冻结口径重算</strong>，
+        不用当前站规重算已关窗；若有撤回，末次撤回的新值须与窗表一致。
       </p>
       <div className="行">
         <button className="水" onClick={跑}>跑窗互证</button>
         <button className="次" onClick={刷}>刷新履历</button>
       </div>
+      {错 && <div className="报箱">{错}</div>}
       {果 && (
         <div className="证板">
           <div className={`证旗 ${果.是否通过 ? "通" : "败"}`}>
@@ -32,6 +40,14 @@ export default function 窗互证页() {
             <div className="卡"><b>{果.撤回数}</b><span>撤回</span></div>
             <div className="卡"><b>{果.旁路数}</b><span>旁路</span></div>
           </div>
+        </div>
+      )}
+      {果 && 果.口径 && (
+        <div className="提示条">
+          互证口径：当前站规 <b>{果.口径.公式}</b>（权重 {果.口径.权重}）；已关窗按各自冻结口径核验：{" "}
+          {Object.keys(果.已关窗口径分布 || {}).length
+            ? Object.entries(果.已关窗口径分布).map(([k, v]) => `${k}×${v}`).join(" · ")
+            : "无已关窗"}
         </div>
       )}
       <div className="段">

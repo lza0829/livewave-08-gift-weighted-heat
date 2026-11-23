@@ -26,6 +26,18 @@ export default function 热度台() {
         冒烟顺序：<Link to="/事件流">事件流</Link> 依次推三份样例 → 看水位线 / 热度窗 / 撤回单 / 旁路匣 →{" "}
         <Link to="/窗互证">窗互证</Link>。
       </div>
+      {数.口径 && (
+        <div className="提示条">
+          热度口径（全局单选）：<b>{数.口径.公式}</b>（权重 {数.口径.权重}） · 主指标 ={" "}
+          <span className="码">{数.口径.主指标 || "—"}</span> · 口径版本 {数.口径.口径版本} ·{" "}
+          {数.口径.valid ? "有效" : "无效（装载将失败闭）"} · 去 <Link to="/窗参">窗参</Link> 改口径
+          {数.已关窗口径分布 && Object.keys(数.已关窗口径分布).length ? (
+            <span>
+              {" "}· 已关窗按冻结口径：{Object.entries(数.已关窗口径分布).map(([k, v]) => `${k}×${v}`).join(" · ")}
+            </span>
+          ) : null}
+        </div>
+      )}
       <div className="行"><button className="次" onClick={刷}>刷新台面</button></div>
       {末 ? (
         <div className="行" style={{ gap: "0.7rem" }}>

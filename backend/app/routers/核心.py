@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from app.db import 夹具目录, 连接
-from app.services import 装载, 贯验, 目录
+from app.services import 装载, 贯验, 目录, 口径
 
 路由 = APIRouter(prefix="/api")
 
@@ -11,6 +11,12 @@ from app.services import 装载, 贯验, 目录
 class 装载请求(BaseModel):
     批次编号: str = ""
     事件: list = Field(default_factory=list)
+
+
+class 改口径请求(BaseModel):
+    公式: str | None = None
+    权重: int | None = None
+    期望版本: int | None = None
 
 
 @路由.get("/健康")
@@ -34,6 +40,35 @@ def 站规():
         return {r["键"]: r["值"] for r in conn.execute("SELECT 键, 值 FROM 站规")}
     finally:
         conn.close()
+
+
+@路由.get("/热度口径")
+def 取热度口径():
+    """只读热度口径：公式、权重、主指标表达式、valid（及口径版本）。"""
+    conn = 连接()
+    try:
+        return 口径.读当前(conn)
+    finally:
+        conn.close()
+
+
+@路由.get("/热度口径/变更")
+def 列口径变更():
+    conn = 连接()
+    try:
+        return 口径.读变更(conn)
+    finally:
+        conn.close()
+
+
+@路由.post("/热度口径")
+def 做改口径(体: 改口径请求):
+    try:
+        return 口径.改口径(体.model_dump())
+    except (口径.版本冲突, 口径.并发冲突) as e:
+        raise HTTPException(409, str(e))
+    except 口径.口径无效 as e:
+        raise HTTPException(422, str(e))
 
 
 @路由.get("/直播间")
@@ -77,13 +112,18 @@ def 列水位线():
 def 列热度窗(状态: str = ""):
     conn = 连接()
     try:
+        # 同一读快照内取窗与当前口径，避免与关窗/改口径交错时页面半新半旧。
+        conn.execute("BEGIN")
+        当前 = 口径.读当前(conn)
         if 状态:
             rows = conn.execute(
                 "SELECT * FROM 热度窗 WHERE 状态=? ORDER BY 窗起事件时 DESC", (状态,)
-            )
+            ).fetchall()
         else:
-            rows = conn.execute("SELECT * FROM 热度窗 ORDER BY 窗起事件时 DESC")
-        return [dict(r) for r in rows]
+            rows = conn.execute("SELECT * FROM 热度窗 ORDER BY 窗起事件时 DESC").fetchall()
+        out = [口径.装饰窗(r, 当前) for r in rows]
+        conn.commit()
+        return out
     finally:
         conn.close()
 
@@ -125,7 +165,12 @@ def 列批次():
 
 @路由.post("/装载")
 def 做装载(体: 装载请求):
-    return 装载.装一批(体.model_dump())
+    try:
+        return 装载.装一批(体.model_dump())
+    except 口径.并发冲突 as e:
+        raise HTTPException(409, str(e))
+    except 口径.口径无效 as e:
+        raise HTTPException(422, str(e))
 
 
 @路由.post("/装载/夹具")
@@ -138,7 +183,10 @@ def 装夹具(名: str = "准时热度样例"):
 
 @路由.post("/贯验")
 def 做贯验():
-    return 贯验.跑贯验()
+    try:
+        return 贯验.跑贯验()
+    except 口径.并发冲突 as e:
+        raise HTTPException(409, str(e))
 
 
 @路由.get("/贯验")

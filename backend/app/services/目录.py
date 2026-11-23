@@ -1,4 +1,5 @@
 from app.db import 连接
+from app.services import 口径
 
 
 def 总览() -> dict:
@@ -10,6 +11,12 @@ def 总览() -> dict:
         末 = conn.execute(
             "SELECT * FROM 窗贯验 ORDER BY 编号 DESC LIMIT 1"
         ).fetchone()
+        当前口径 = 口径.读当前(conn)
+        已关窗分布 = {}
+        for r in conn.execute(
+            "SELECT 主指标公式 AS 公式, COUNT(*) AS 数 FROM 热度窗 WHERE 状态='已关闭' GROUP BY 主指标公式"
+        ):
+            已关窗分布[r["公式"] or "未冻结"] = r["数"]
         return {
             "直播间": c("SELECT COUNT(*) FROM 直播间"),
             "互动事件": c("SELECT COUNT(*) FROM 互动事件"),
@@ -22,6 +29,8 @@ def 总览() -> dict:
             "旁路匣": c("SELECT COUNT(*) FROM 旁路匣"),
             "装载批次": c("SELECT COUNT(*) FROM 装载批次"),
             "末次贯验": dict(末) if 末 else None,
+            "口径": 当前口径,
+            "已关窗口径分布": 已关窗分布,
         }
     finally:
         conn.close()

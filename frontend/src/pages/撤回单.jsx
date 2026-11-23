@@ -18,7 +18,7 @@ export default function 撤回单页() {
         <table>
           <thead>
             <tr>
-              <th>编号</th><th>窗键</th><th>原因</th><th>点赞旧→新</th><th>送礼旧→新</th><th>触发事件</th><th>处理时</th>
+              <th>编号</th><th>窗键</th><th>原因</th><th>点赞旧→新</th><th>送礼旧→新</th><th>主指标旧→新</th><th>触发事件</th><th>处理时</th>
             </tr>
           </thead>
           <tbody>
@@ -26,6 +26,7 @@ export default function 撤回单页() {
               <tr key={r.编号}>
                 <td>{r.编号}</td><td className="码">{r.窗键}</td><td>{r.原因}</td>
                 <td>{r.旧点赞} → {r.新点赞}</td><td>{r.旧送礼} → {r.新送礼}</td>
+                <td>{r.旧主指标} → {r.新主指标}</td>
                 <td>{r.事件编号}</td><td className="码">{r.处理时}</td>
               </tr>
             ))}
